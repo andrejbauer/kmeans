@@ -87,7 +87,7 @@ module type Kmeans_Frame =
 sig
   type attr 
   type clas
-  val predict : attr * clas list -> int -> ((clas -> clas -> float) -> (attr -> attr -> float) -> attr * clas list -> clas) -> attr -> clas
+  val predict : (attr * clas) list -> int -> ((clas -> clas -> float) -> (attr -> attr -> float) -> (attr * clas) list -> clas) -> attr -> clas
 end
 
 module Kmeans 
