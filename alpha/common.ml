@@ -15,6 +15,12 @@ struct
   let dist x y = min 1. (abs_float (x -. y)/.tol)
 end
 
+let rampa tol = 
+  (module struct
+    type point = float
+    let dist x y = min 1. (abs_float (x -. y)/.tol)
+  end : Metric with type point = float)
+
 module Jaccard (S : Set.S) : Metric with type point = S.t =
 struct
   type point = S.t
@@ -37,3 +43,9 @@ struct
     let maksi sez1 sez2 = List.fold_left max 0. (List.map (mini sez2) sez1) in
     max (maksi l1 l2) (maksi l2 l1)    
 end
+
+module Str = Discrete 
+  (struct
+    type t = bytes
+    let equal = (=)
+  end)

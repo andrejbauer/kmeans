@@ -24,38 +24,51 @@ let parse lst =
    f 15)
 
 
-module Str = Discrete 
-  (struct
-    type t = bytes
-    let equal = (=)
-  end)
+
 
   
-module Att = Product15 (Str) (CutFloat) (CutFloat) (Str) (Str) (Str) (Str) (CutFloat) (Str) (Str) (CutFloat) (Str) (Str) (CutFloat) (CutFloat) (Avg)
+module Att = Product15 
+  (Str) 
+  ((val (rampa 40.)))
+  ((val (rampa 20.)))
+  (Str) 
+  (Str) 
+  (Str) 
+  (Str) 
+  ((val (rampa 20.)))
+  (Str) (Str) 
+  ((val (rampa 10.)))
+  (Str) 
+  (Str) 
+  ((val (rampa 500.)))
+  ((val (rampa 20000.)))
+  (Avg)
 
 module Cla = Str
 
 module Ktest = Kmeans (Att) (Cla)
 
-let splitdata () = 
-  let data = Csv.load "crx.data" in
-  let filter x = Random.bool () in
-  let dataset = List.map parse data in
-  List.partition filter dataset
-  
-let mean d1 d2 sez =
-  let filter x = (snd x) = "+" in
-  let (p,m) = List.partition filter sez in
-  if (List.length p) > (List.length m) then "+" else "-"
-  
-
-
-let natancnost = 
-  let (train,test) = splitdata () in
-  let resitve = List.map snd test in
-  let pred x = Ktest.predict train 1 mean (fst x) in
-  let rezultati = List.map pred test in
-  let add a b c = if a = b then c+.1. else c in
-  let hits = List.fold_right2 add resitve rezultati 0. in
-  print_float (hits /. (float_of_int (List.length test)));
-  print_newline ()
+let _ = 
+  for i=0 to 10 do
+    let splitdata () = 
+      let data = Csv.load "crx.data" in
+      let filter x = Random.bool () in
+      let dataset = List.map parse data in
+      List.partition filter dataset
+    in
+    
+    let mean d1 d2 sez =
+      let filter x = (snd x) = "+" in
+      let (p,m) = List.partition filter sez in
+      if (List.length p) > (List.length m) then "+" else "-"
+    in
+    
+    let (train,test) = splitdata () in
+    let resitve = List.map snd test in
+    let pred x = Ktest.predict train 21 mean (fst x) in
+    let rezultati = List.map pred test in
+    let add a b c = if a = b then c+.1. else c in
+    let hits = List.fold_right2 add resitve rezultati 0. in
+    print_float (hits /. (float_of_int (List.length test)));
+    print_newline ()
+  done
