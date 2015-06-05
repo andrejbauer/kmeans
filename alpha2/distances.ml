@@ -1,4 +1,5 @@
 open Batteries
+open Frame
 
 let max_agg = List.fold_left max 0.
 
@@ -41,11 +42,11 @@ let rampa mini maks
     = fun x y -> min 1. ((max 0. (abs_float (x -. y) -. mini))/.(maks -. mini))
 
 type distance =
-    | Num of num_dist
-    | Set of set_dist
-    | Tup of tuple_dist
-    | Dis of discrete_distance
-    | Seq of sequence_dist
+    | NumD of num_dist
+    | SetD of set_dist
+    | TupD of tuple_dist
+    | DisD of discrete_distance
+    | SeqD of sequence_dist
 and num_dist =
     | Rampa of float*float
     | NDelta
@@ -63,14 +64,6 @@ and set_dist =
     | SetSample of distance
 and sequence_dist =
     | SeqSample of distance
-    
-type data =
-    | Discrete of string
-    | Numerical of float
-    | Set of data list
-    | Tuple of data list
-    | Sequence of data list
-    | Missing
 
 let rec calculate dist d1 d2 = 
     let pomo fs xs ys = 
@@ -80,18 +73,18 @@ let rec calculate dist d1 d2 =
     match dist,d1,d2 with
         | _,Missing,_ -> 1.
         | _,_,Missing -> 1.
-        | Num Rampa (a,b), Numerical x, Numerical y -> rampa a b x y
-        | Num NDelta, Numerical x, Numerical y -> if x = y then 0. else 1.
-        | Dis DDelta, Discrete x, Discrete y -> if x = y then 0. else 1.
-        | Tup Max lst, Tuple x, Tuple y -> max_agg (pomo lst x y)
-        | Tup Euc lst, Tuple x, Tuple y -> euc_agg (pomo lst x y)
-        | Tup Avg lst, Tuple x, Tuple y -> avg_agg (pomo lst x y)
-        | Tup Med lst, Tuple x, Tuple y -> med_agg (pomo lst x y)
-        | Tup Har lst, Tuple x, Tuple y -> har_agg (pomo lst x y)
-        | Tup Geo lst, Tuple x, Tuple y -> geo_agg (pomo lst x y)
-        | Tup Wgh (ws,lst), Tuple x, Tuple y -> wgh_agg ws (pomo lst x y)
-        | Set SetSample f, Set x, Set y -> sampledist (calculate f) x y
-        | Seq SeqSample f, Sequence x, Sequence y -> sampledist (calculate f) x y
+        | NumD Rampa (a,b), Numerical x, Numerical y -> rampa a b x y
+        | NumD NDelta, Numerical x, Numerical y -> if x = y then 0. else 1.
+        | DisD DDelta, Discrete x, Discrete y -> if x = y then 0. else 1.
+        | TupD Max lst, Tuple x, Tuple y -> max_agg (pomo lst x y)
+        | TupD Euc lst, Tuple x, Tuple y -> euc_agg (pomo lst x y)
+        | TupD Avg lst, Tuple x, Tuple y -> avg_agg (pomo lst x y)
+        | TupD Med lst, Tuple x, Tuple y -> med_agg (pomo lst x y)
+        | TupD Har lst, Tuple x, Tuple y -> har_agg (pomo lst x y)
+        | TupD Geo lst, Tuple x, Tuple y -> geo_agg (pomo lst x y)
+        | TupD Wgh (ws,lst), Tuple x, Tuple y -> wgh_agg ws (pomo lst x y)
+        | SetD SetSample f, Set x, Set y -> sampledist (calculate f) x y
+        | SeqD SeqSample f, Sequence x, Sequence y -> sampledist (calculate f) x y
         | _,_,_ -> raise (Failure "Neznana razdalja ali neujemajoc podatek.") 
     
 let distance_repr d = 
@@ -102,18 +95,18 @@ let distance_repr d =
     let acc = ref [] in
     let rec repr n d =
         match d with
-            | Num Rampa (a,b) -> acc := (Printf.sprintf "%sRampa (%F,%F)" (Bytes.make n ' ') a b)::!acc
-            | Num NDelta -> acc := (Printf.sprintf "%sNDelta" (Bytes.make n ' '))::!acc
-            | Dis DDelta -> acc := (Printf.sprintf "%sDDelta" (Bytes.make n ' '))::!acc
-            | Tup Max lst -> acc := (Printf.sprintf "%sMax" (Bytes.make n ' '))::!acc; List.map (repr (n+4)) lst; ()
-            | Tup Euc lst -> acc := (Printf.sprintf "%sEuc" (Bytes.make n ' '))::!acc; List.map (repr (n+4)) lst; ()
-            | Tup Avg lst -> acc := (Printf.sprintf "%sAvg" (Bytes.make n ' '))::!acc; List.map (repr (n+4)) lst; ()
-            | Tup Med lst -> acc := (Printf.sprintf "%sMed" (Bytes.make n ' '))::!acc; List.map (repr (n+4)) lst; ()
-            | Tup Har lst -> acc := (Printf.sprintf "%sHar" (Bytes.make n ' '))::!acc; List.map (repr (n+4)) lst; ()
-            | Tup Geo lst -> acc := (Printf.sprintf "%sGeo" (Bytes.make n ' '))::!acc; List.map (repr (n+4)) lst; ()
-            | Tup Wgh (ws,lst) -> acc := (Printf.sprintf "%sWgh%s" (Bytes.make n ' ') (weights_repr ws))::!acc; List.map (repr (n+4)) lst; ()
-            | Set SetSample f -> acc := (Printf.sprintf "%sSetSample" (Bytes.make n ' '))::!acc; repr (n+4) f
-            | Seq SeqSample f -> acc := (Printf.sprintf "%sSeqSample" (Bytes.make n ' '))::!acc; repr (n+4) f
+            | NumD Rampa (a,b) -> acc := (Printf.sprintf "%sRampa (%F,%F)" (Bytes.make n ' ') a b)::!acc
+            | NumD NDelta -> acc := (Printf.sprintf "%sNDelta" (Bytes.make n ' '))::!acc
+            | DisD DDelta -> acc := (Printf.sprintf "%sDDelta" (Bytes.make n ' '))::!acc
+            | TupD Max lst -> acc := (Printf.sprintf "%sMax" (Bytes.make n ' '))::!acc; List.map (repr (n+4)) lst; ()
+            | TupD Euc lst -> acc := (Printf.sprintf "%sEuc" (Bytes.make n ' '))::!acc; List.map (repr (n+4)) lst; ()
+            | TupD Avg lst -> acc := (Printf.sprintf "%sAvg" (Bytes.make n ' '))::!acc; List.map (repr (n+4)) lst; ()
+            | TupD Med lst -> acc := (Printf.sprintf "%sMed" (Bytes.make n ' '))::!acc; List.map (repr (n+4)) lst; ()
+            | TupD Har lst -> acc := (Printf.sprintf "%sHar" (Bytes.make n ' '))::!acc; List.map (repr (n+4)) lst; ()
+            | TupD Geo lst -> acc := (Printf.sprintf "%sGeo" (Bytes.make n ' '))::!acc; List.map (repr (n+4)) lst; ()
+            | TupD Wgh (ws,lst) -> acc := (Printf.sprintf "%sWgh%s" (Bytes.make n ' ') (weights_repr ws))::!acc; List.map (repr (n+4)) lst; ()
+            | SetD SetSample f -> acc := (Printf.sprintf "%sSetSample" (Bytes.make n ' '))::!acc; repr (n+4) f
+            | SeqD SeqSample f -> acc := (Printf.sprintf "%sSeqSample" (Bytes.make n ' '))::!acc; repr (n+4) f
     in 
     repr 0 d;
     let temp = List.rev !acc in

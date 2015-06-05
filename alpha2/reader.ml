@@ -1,4 +1,4 @@
-
+open Frame
 
 (* iz seznama izloči n-ti element *)
 let rec loci sez n = match sez with 
