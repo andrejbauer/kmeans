@@ -1,4 +1,3 @@
-open Frame
 open Reader
 open Printf
 open Distances
@@ -6,8 +5,8 @@ open Distances
 let all2all s1 s2 =
     let f x y = (y,x) in
     let pomo sez x = List.map (f x) sez in
-    List.flatten (List.map (pomo s1) s2) 
-    
+    List.flatten (List.map (pomo s1) s2)
+
 let rec select key k lst = match lst with
     | [] -> []
     | x :: xs -> let ys, zs = List.partition (key x) xs in
@@ -18,23 +17,23 @@ let rec select key k lst = match lst with
                     (x::ys) @ (select key (k-l-1) zs)
                 else
                     ys
-    
+
 let kneighs dista distc k mean tset sample =
     let pomo x = (min (1./.(calculate dista sample (fst x))) 999999999., x) in
     let mapped = List.map pomo tset in
     let key x y = (fst x) < (fst y) in
     let neighs = select key k mapped in
     mean dista distc neighs sample
-    
+
 
 let medoid da dc set sample =
     let f x = (snd (snd x), fst x) in
     let temp = List.map f set in
     let rec count (a,b) xs = match xs with
         | [] -> (a,b,[])
-        | (c,d) :: sez -> 
-            let (x,y,z) = count (a,b) sez in  
-            if a = c 
+        | (c,d) :: sez ->
+            let (x,y,z) = count (a,b) sez in
+            if a = c
             then (a,y+.b+.d,z)
             else (a,y+.b,(c,d)::z)
     in
@@ -45,16 +44,16 @@ let medoid da dc set sample =
     let temp2 = combine temp in
     let pomo (a,b) (c,d) = if b > d then (a,b) else (c,d) in
     fst (List.fold_left pomo ((Set []),0.) temp2)
-    
+
 let mean da dc set sample =
-    let sum = ref 0. in 
-    let f s x = 
-        let w = fst x in match snd (snd x) with 
+    let sum = ref 0. in
+    let f s x =
+        let w = fst x in match snd (snd x) with
         | Numerical a -> sum := !sum +. w; s +. w *. a
         | _ -> raise (Failure "Not a number in mean")
     in
     (List.fold_left f 0. set) /. !sum
-    
+
 let calc_distances shema =
     let rec distances data = match data with
         | D _ -> [DisD DDelta]
@@ -85,18 +84,18 @@ let calc_distances shema =
             List.fold_left f [] dists
     in distances shema
 
-    
+
 (* testiranje kNN *)
-let testiraj ime print_distance = 
+let testiraj ime print_distance =
     let (s1,s2,podatki) = read_arff ime in
     print_int (List.length podatki); print_newline ();
-    (match s1 with 
+    (match s1 with
     | Tp sez -> print_int (List.length sez); print_newline ()
     | _ -> ());
     let razdaljeA = calc_distances s1 in
-    let razdaljeC = calc_distances s2 in 
+    let razdaljeC = calc_distances s2 in
     let pari = all2all razdaljeA razdaljeC in
-    match s2 with 
+    match s2 with
     | N (_,_) ->
         (for i = 1 to (List.length pari) do
             let (da,dc) = List.nth pari (i-1) in
@@ -108,11 +107,11 @@ let testiraj ime print_distance =
                 let knn x = kneighs da dc 7 mean train (fst x) in
                 let rezultati = List.map knn test in
                 let resitve = List.map snd test in
-                let add1 a b c = match a with 
-                    | Numerical aa -> c +. (abs_float (aa -. b)) /. aa 
+                let add1 a b c = match a with
+                    | Numerical aa -> c +. (abs_float (aa -. b)) /. aa
                     | _ -> raise (Failure "Not a number.")
                 in
-                let add2 a b c = match a with 
+                let add2 a b c = match a with
                     | Numerical aa -> c +. (abs_float (aa -. b))
                     | _ -> raise (Failure "Not a number.")
                 in
@@ -123,7 +122,7 @@ let testiraj ime print_distance =
                 rel_error := !rel_error +. avg2;
                 abs_error := !abs_error +. avg1
             done);
-            if print_distance 
+            if print_distance
                 then (print_string (distance_repr da); print_string (distance_repr dc))
                 else ();
             print_string "Relative error: ";
@@ -132,7 +131,7 @@ let testiraj ime print_distance =
             print_float (!abs_error /. 10.);
             print_newline ()
         done)
-    | _ -> 
+    | _ ->
         (for i = 1 to (List.length pari) do
             let (da,dc) = List.nth pari (i-1) in
             let accuracy = ref 0. in
@@ -147,7 +146,7 @@ let testiraj ime print_distance =
                 let acc = hits/.(float_of_int (List.length test)) in
                 accuracy := !accuracy +. acc
             done);
-            if print_distance 
+            if print_distance
                 then (print_string (distance_repr da); print_string (distance_repr dc))
                 else ();
             print_string "Accuracy: ";
@@ -155,9 +154,9 @@ let testiraj ime print_distance =
             print_newline ()
         done)
 
-let () = 
+let () =
     for i = 1 to Array.length Sys.argv - 1 do
         let ime = Sys.argv.(i) in
         (printf "Datoteka %s\n" ime);
-        testiraj ime false     
+        testiraj ime false
     done
