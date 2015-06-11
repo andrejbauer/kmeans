@@ -39,6 +39,7 @@ let read_arff filename =
     let clean = ref [] in
     let mini = ref [||] in
     let maksi = ref [||] in
+    let dis_vrednosti = ref [] in
     let attr = ref 0 in
     let podatki = ref false in
     let shema = ref [] in
@@ -53,9 +54,14 @@ let read_arff filename =
             let tip = List.nth temp 2 in
             (if List.mem (String.lowercase tip) ["numeric";"real";"integer"]
             then
-                parserji := (numpar mini maksi !attr) :: !parserji
+                (parserji := (numpar mini maksi !attr) :: !parserji;
+                dis_vrednosti := [] :: !dis_vrednosti)
             else
-                parserji := strpar :: !parserji);
+                (parserji := strpar :: !parserji;
+                let temp1 = Batteries.String.strip ~chars:"{} " tip in
+                let temp2 = Str.split (Str.regexp ",") temp1 in
+                let temp3 = List.map Batteries.String.strip temp2 in
+                dis_vrednosti := temp3 :: !dis_vrednosti));
             attr := !attr+1;
             if String.lowercase name = "class" then cind := !attr -1 else ();
         else if (String.get zacetek 0) != '%' && (String.get zacetek 0) != '@'
@@ -64,6 +70,7 @@ let read_arff filename =
             (if (not !podatki)
             then
                 (podatki := true;
+                dis_vrednosti := List.rev !dis_vrednosti;
                 parserji := List.rev !parserji;
                 attr := List.length !parserji;
                 mini := (Array.make !attr 999999999999.);
@@ -84,7 +91,7 @@ let read_arff filename =
         let ma = (Array.get !maksi i) in
         if mi=999999999999. && ma=0.
         then
-            shema := !shema @ [D []]
+            shema := !shema @ [D (List.nth !dis_vrednosti i)]
         else
             shema := !shema @ [N (0.,ma-.mi)]
     done);
