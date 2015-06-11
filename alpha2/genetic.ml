@@ -50,11 +50,23 @@ let random_tuple lst =
     else if a = 5 then TupD (Geo lst)
     else TupD (Wgh (List.map Random.float (Batteries.List.make n 1.), lst))
 
+let random_discrete lst =
+    if (Random.float 1.) < 0.
+    then DisD Delta
+    else
+        let pomo x y = (x,y,1.) in
+        let rec kombinacije s1 s2 = match s2 with
+            | [] -> []
+            | x :: xs -> [(x,x,0.)] @ (List.map (pomo x) s1) @ (kombinacije (x::s1) xs)
+        in DisD (Matrix (List.sort Pervasives.compare (kombinacije [] lst)))
+
 let rec mate dist1 dist2 =
     let par = if Random.bool () then (dist1,dist2) else (dist2,dist1) in
     match par with
     | NumD Rampa (a,b), _ -> NumD (Rampa (a,b))
     | DisD Delta, _ -> DisD Delta
+    | _, DisD Delta -> DisD Delta
+    | DisD Matrix lst1, DisD Matrix lst2 -> DisD (Matrix (List.map2 (fun (a,b,f) (c,d,g) -> (a,b,(f+.g)/.2.)) lst1 lst2))
     | SetD SetSample d1, SetD SetSample d2 -> SetD (SetSample (mate d1 d2))
     | SeqD SeqSample d1, SeqD SeqSample d2 -> SeqD (SeqSample (mate d1 d2))
     | TupD Max lst1, (TupD Euc lst2 | TupD Avg lst2 | TupD Max lst2 | TupD Med lst2 | TupD Har lst2 | TupD Geo lst2) -> TupD (Max (List.map2 mate lst1 lst2))
@@ -64,11 +76,11 @@ let rec mate dist1 dist2 =
     | TupD Har lst1, (TupD Euc lst2 | TupD Avg lst2 | TupD Max lst2 | TupD Med lst2 | TupD Har lst2 | TupD Geo lst2) -> TupD (Har (List.map2 mate lst1 lst2))
     | TupD Geo lst1, (TupD Euc lst2 | TupD Avg lst2 | TupD Max lst2 | TupD Med lst2 | TupD Har lst2 | TupD Geo lst2) -> TupD (Geo (List.map2 mate lst1 lst2))
     | TupD Max lst1, TupD Wgh (ws, lst2) -> TupD (Max (List.map2 mate lst1 lst2))
-    | TupD Euc lst1, TupD Wgh (ws, lst2) -> TupD (Max (List.map2 mate lst1 lst2))
-    | TupD Avg lst1, TupD Wgh (ws, lst2) -> TupD (Max (List.map2 mate lst1 lst2))
-    | TupD Med lst1, TupD Wgh (ws, lst2) -> TupD (Max (List.map2 mate lst1 lst2))
-    | TupD Har lst1, TupD Wgh (ws, lst2) -> TupD (Max (List.map2 mate lst1 lst2))
-    | TupD Geo lst1, TupD Wgh (ws, lst2) -> TupD (Max (List.map2 mate lst1 lst2))
+    | TupD Euc lst1, TupD Wgh (ws, lst2) -> TupD (Euc (List.map2 mate lst1 lst2))
+    | TupD Avg lst1, TupD Wgh (ws, lst2) -> TupD (Avg (List.map2 mate lst1 lst2))
+    | TupD Med lst1, TupD Wgh (ws, lst2) -> TupD (Med (List.map2 mate lst1 lst2))
+    | TupD Har lst1, TupD Wgh (ws, lst2) -> TupD (Har (List.map2 mate lst1 lst2))
+    | TupD Geo lst1, TupD Wgh (ws, lst2) -> TupD (Geo (List.map2 mate lst1 lst2))
     | TupD Wgh (ws, lst1), (TupD Euc lst2 | TupD Avg lst2 | TupD Max lst2 | TupD Med lst2 | TupD Har lst2 | TupD Geo lst2) -> TupD (Wgh (ws, List.map2 mate lst1 lst2))
     | TupD Wgh (ws1,lst1),TupD Wgh (ws2,lst2) -> TupD (Wgh (List.map2 (fun x y -> (x+.y)/.2.) ws1 ws2, List.map2 mate lst1 lst2))
     | _ -> raise (Failure "Starsa razlicnih tipov")
@@ -78,6 +90,9 @@ let rec mutate pow dist =
     | SetD SetSample d -> SetD (SetSample (mutate pow d))
     | SeqD SeqSample d -> SeqD (SeqSample (mutate pow d))
     | DisD Delta -> DisD Delta
+    | DisD Matrix lst ->
+        let pert (a,b,x) = (a,b,(min 1. (1. +. pow -. 2.*.(Random.float pow))*.x)) in
+        DisD (Matrix (List.map pert lst))
     | NumD Rampa (a,b) -> NumD (Rampa (a*.(1.+.pow*.(1.-.2.*.Random.float 1.)),b*.(1.+.pow*.(1.-.2.*.Random.float 1.))))
     | TupD Max lst -> if (Random.float 1. < pow) then random_tuple (List.map (mutate pow) lst) else TupD (Max (List.map (mutate pow) lst))
     | TupD Euc lst -> if (Random.float 1. < pow) then random_tuple (List.map (mutate pow) lst) else TupD (Euc (List.map (mutate pow) lst))
@@ -85,27 +100,28 @@ let rec mutate pow dist =
     | TupD Med lst -> if (Random.float 1. < pow) then random_tuple (List.map (mutate pow) lst) else TupD (Med (List.map (mutate pow) lst))
     | TupD Har lst -> if (Random.float 1. < pow) then random_tuple (List.map (mutate pow) lst) else TupD (Har (List.map (mutate pow) lst))
     | TupD Geo lst -> if (Random.float 1. < pow) then random_tuple (List.map (mutate pow) lst) else TupD (Geo (List.map (mutate pow) lst))
-    | TupD Wgh (ws, lst) ->
-        let pert x = (1.+.pow*.(1.-.2.*.Random.float 1.))*.x in
+    | TupD Wgh (ws, lst) -> if (Random.float 1. < pow)
+        then random_tuple (List.map (mutate pow) lst)
+        else let pert x = (1. +. pow -. 2.*.(Random.float pow))*.x in
         TupD (Wgh ((List.map pert ws),(List.map (mutate pow) lst)))
 
 let rec random_dist shema = match shema with
     | N (a,b) -> NumD (Rampa (b*.Random.float 0.5,b/.2.+.b*.Random.float 1.))
-    | D lst -> DisD Delta
+    | D lst -> random_discrete lst
     | St s -> SetD (SetSample (random_dist s))
     | Sq s -> SeqD (SeqSample (random_dist s))
     | Tp ss -> random_tuple (List.map random_dist ss)
 
 let offspring pow sh parents = match parents with
-    | [a;b;c] -> [a; b; c; mutate pow (mate a b); mutate pow (mate a c); mutate pow (mate b c); random_dist sh]
+    | [a;b;c] -> [a; b; c; mutate pow (mate a b); mutate pow (mate a c); mutate pow (mate b c); random_dist sh; random_dist sh; random_dist sh]
     | _ -> raise (Failure "Prekratek seznam za zarod.")
 
 let evaluate da dc podatki =
     let accuracy = ref 0. in
     let filter x = Random.bool () in
-    (for j = 1 to 20 do
+    (for j = 1 to 10 do
         let (train,test) = List.partition filter podatki in
-        let knn x = kneighs da dc 7 medoid train (fst x) in
+        let knn x = kneighs da dc 13 medoid train (fst x) in
         let rezultati = List.map knn test in
         let resitve = List.map snd test in
         let add a b c = if a=b then c+.1. else c in
@@ -113,7 +129,7 @@ let evaluate da dc podatki =
         let acc = hits/.(float_of_int (List.length test)) in
         accuracy := !accuracy +. acc
     done);
-    !accuracy /. 20.
+    !accuracy /. 10.
 
 let evolution pow len ime =
     let (s1,s2,podatki) = read_arff ime in
@@ -136,7 +152,7 @@ let evolution pow len ime =
     done;
     print_string (distance_repr (List.hd !fathers))
 
-let () =
+let _ =
     let name = Sys.argv.(1) in
     let gens = int_of_string Sys.argv.(2) in
     let pow = float_of_string Sys.argv.(3) in
