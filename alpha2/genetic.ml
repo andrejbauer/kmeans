@@ -1,43 +1,7 @@
 open Reader
 open Printf
 open Distances
-
-let rec select key k lst = match lst with
-    | [] -> []
-    | x :: xs -> let ys, zs = List.partition (key x) xs in
-                let l = List.length ys in
-                if k < l then
-                    select key k ys
-                else if k > l then
-                    (x::ys) @ (select key (k-l-1) zs)
-                else
-                    ys
-
-let kneighs dista distc k mean tset sample =
-    let pomo x = (min (1./.(calculate dista sample (fst x))) 999999999., x) in
-    let mapped = List.map pomo tset in
-    let key x y = (fst x) < (fst y) in
-    let neighs = select key k mapped in
-    mean dista distc neighs sample
-
-let medoid da dc set sample =
-    let f x = (snd (snd x), fst x) in
-    let temp = List.map f set in
-    let rec count (a,b) xs = match xs with
-        | [] -> (a,b,[])
-        | (c,d) :: sez ->
-            let (x,y,z) = count (a,b) sez in
-            if a = c
-            then (a,y+.b+.d,z)
-            else (a,y+.b,(c,d)::z)
-    in
-    let rec combine lst = match lst with
-        | [] -> []
-        | l::ls -> let (a,b,c) = count l ls in (a,b) :: (combine c)
-    in
-    let temp2 = combine temp in
-    let pomo (a,b) (c,d) = if b > d then (a,b) else (c,d) in
-    fst (List.fold_left pomo ((Set []),0.) temp2)
+open Algorithms
 
 let random_tuple lst =
     let n = List.length lst in
@@ -116,21 +80,6 @@ let offspring pow sh parents = match parents with
     | [a;b;c] -> [a; b; c; mutate pow (mate a b); mutate pow (mate a c); mutate pow (mate b c); random_dist sh; random_dist sh; random_dist sh]
     | _ -> raise (Failure "Prekratek seznam za zarod.")
 
-let evaluate da dc podatki =
-    let accuracy = ref 0. in
-    let filter x = Random.bool () in
-    (for j = 1 to 10 do
-        let (train,test) = List.partition filter podatki in
-        let knn x = kneighs da dc 13 medoid train (fst x) in
-        let rezultati = List.map knn test in
-        let resitve = List.map snd test in
-        let add a b c = if a=b then c+.1. else c in
-        let hits = List.fold_right2 add resitve rezultati 0. in
-        let acc = hits/.(float_of_int (List.length test)) in
-        accuracy := !accuracy +. acc
-    done);
-    !accuracy /. 10.
-
 let evolution pow len ime =
     let (s1,s2,podatki) = read_arff ime in
     print_int (List.length podatki); print_newline ();
@@ -141,7 +90,7 @@ let evolution pow len ime =
     let fathers = ref [random_dist s1; random_dist s1; random_dist s1] in
     for gen = 0 to len do
         let candidates = offspring pow s1 !fathers in
-        let eval x = (evaluate x dummy podatki, x) in
+        let eval x = (evaluate 10 s2 x dummy 13 podatki, x) in
         let results = List.rev (List.sort Pervasives.compare (List.map eval candidates)) in
         let a,b,c = (List.nth results 0),(List.nth results 1),(List.nth results 2) in
         print_string "Generation: "; print_int gen; print_newline ();
