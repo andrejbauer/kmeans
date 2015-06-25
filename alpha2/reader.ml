@@ -93,7 +93,7 @@ let read_arff filename =
         then
             shema := !shema @ [D (List.nth !dis_vrednosti i)]
         else
-            shema := !shema @ [N (0.,ma-.mi)]
+            shema := !shema @ [N (ma-.mi)]
     done);
     let (sc,sa) = loci !shema !cind in
     ((Tp sa),sc,!clean)

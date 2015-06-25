@@ -12,7 +12,7 @@ let rec select key k lst = match lst with
                     ys
 
 let kneighs dista distc k mean tset sample =
-    let pomo x = (min (1./.(calculate dista sample (fst x))) 999999999., x) in
+    let pomo x = (min (1./.(calculate dista sample (fst x))) 999999., x) in
     let mapped = List.map pomo tset in
     let key x y = (fst x) < (fst y) in
     let neighs = select key k mapped in
@@ -45,18 +45,41 @@ let mean da dc set sample =
         | Numerical a -> sum := !sum +. w; s +. w *. a
         | _ -> raise (Failure "Not a number in mean")
     in
-    Numerical ((List.fold_left f 0. set) /. !sum)
+    let total = List.fold_left f 0. set in
+    Numerical (total /. !sum)
+    
+let randomize stratify data = 
+	let randomized = List.sort (fun x y -> 1 - Random.int 3) data in
+	if stratify 
+	then  List.sort (fun x y -> compare (snd x) (snd y)) randomized
+	else randomized
+    
+let generate_sets data folds fold =
+	let filter i x = 
+		i := !i + 1;
+		!i mod folds = fold
+	in
+	List.partition (filter (ref 0)) data
+	
+(*let update_schema s tset =
+	let rec bounds d1 d2 = match d1,d2 with
+		| Discrete a, Discrete b -> Discrete a
+		| (Numerical a), Numerical b -> Numerical (a+.b)
+		| Missing, x -> x
+		| x, Missing -> x
+		| Tuple lst1, Tuple lst2 -> Tuple (List.map2 add_data lst1 lst2)
+		| Set lst1, Set lst2 -> *)
 
-let evaluate n cshema da dc k podatki = match cshema with
+let evaluate folds cshema da dc k podatki = match cshema with
     | N _ -> begin
         let unpack dat = match dat with
             | Numerical a -> a
             | _ -> raise (Failure "Not a number in unpack.")
         in 
-        let coef = ref (float_of_int n) in
-        let filter x = Random.bool () in
-        (for j = 1 to n do
-            let (train,test) = List.partition filter podatki in
+        let coef = ref (float_of_int folds) in
+        let randomized = randomize false podatki in
+        (for j = 1 to folds do
+            let (train,test) = generate_sets randomized folds j in
             let knn x = kneighs da dc k mean train (fst x) in
             let rezultati = List.map (fun x -> unpack (knn x)) test in
             let resitve = List.map (fun x -> unpack (snd x)) test in
@@ -66,13 +89,13 @@ let evaluate n cshema da dc k podatki = match cshema with
             let s_res = List.fold_left2 (fun s y x -> s +. (x -. y)**2.) 0. resitve rezultati in
             coef := !coef -. (s_res/.s_tot) 
         done);
-        !coef /. (float_of_int n)
+        !coef /. (float_of_int folds)
         end    
     | _ -> begin
         let accuracy = ref 0. in
-        let filter x = Random.bool () in
-        (for j = 1 to n do
-            let (train,test) = List.partition filter podatki in
+        let randomized = randomize true podatki in
+        (for j = 1 to folds do
+            let (train,test) = generate_sets randomized folds j in
             let knn x = kneighs da dc k medoid train (fst x) in
             let rezultati = List.map knn test in
             let resitve = List.map snd test in
@@ -81,5 +104,5 @@ let evaluate n cshema da dc k podatki = match cshema with
             let acc = hits/.(float_of_int (List.length test)) in
             accuracy := !accuracy +. acc
         done);
-        !accuracy /. (float_of_int n)
+        !accuracy /. (float_of_int folds)
         end

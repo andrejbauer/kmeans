@@ -70,7 +70,7 @@ let rec mutate pow dist =
         TupD (Wgh ((List.map pert ws),(List.map (mutate pow) lst)))
 
 let rec random_dist shema = match shema with
-    | N (a,b) -> NumD (Rampa (b*.Random.float 0.5,b/.2.+.b*.Random.float 1.))
+    | N b -> NumD (Rampa (b*.Random.float 0.5,b/.2.+.b*.Random.float 1.))
     | D lst -> random_discrete lst
     | St s -> SetD (SetSample (random_dist s))
     | Sq s -> SeqD (SeqSample (random_dist s))
@@ -90,7 +90,7 @@ let evolution pow len ime =
     let fathers = ref [random_dist s1; random_dist s1; random_dist s1] in
     for gen = 0 to len do
         let candidates = offspring pow s1 !fathers in
-        let eval x = (evaluate 10 s2 x dummy 13 podatki, x) in
+        let eval x = (evaluate 10 s2 x dummy 1 podatki, x) in
         let results = List.rev (List.sort Pervasives.compare (List.map eval candidates)) in
         let a,b,c = (List.nth results 0),(List.nth results 1),(List.nth results 2) in
         print_string "Generation: "; print_int gen; print_newline ();
@@ -99,7 +99,7 @@ let evolution pow len ime =
         print_float (fst c); print_newline (); print_newline ();
         fathers := [snd a; snd b; snd c]
     done;
-    print_string (distance_repr (List.hd !fathers))
+    print_endline (distance_repr (List.hd !fathers))
 
 let _ =
     let name = Sys.argv.(1) in

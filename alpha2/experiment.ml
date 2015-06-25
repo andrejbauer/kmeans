@@ -12,7 +12,7 @@ let all2all s1 s2 =
 let calc_distances shema =
     let rec distances data = match data with
         | D _ -> [DisD Delta]
-        | N (a,b) -> [NumD (Rampa (a,b))]
+        | N b -> [NumD (Rampa (0.,b))]
         | St ss ->
             let dists = distances ss in
             let f lst dist = lst @ [SetD (SetSample dist)] in
@@ -35,7 +35,7 @@ let calc_distances shema =
                     List.map f temp2)
             in
             let dists = (combos lst) in
-            let f lst ds = lst @ [TupD (Max ds); TupD (Geo ds); TupD (Har ds); TupD (Avg ds)] in
+            let f lst ds = lst @ [TupD (Max ds); TupD (Geo ds); TupD (Har ds); TupD (Avg ds); TupD (Euc ds)] in
             List.fold_left f [] dists
     in distances shema
 
@@ -52,7 +52,7 @@ let testiraj ime =
     let pari = all2all razdaljeA razdaljeC in
     for i=0 to (List.length pari)-1 do
         let (da,dc) = List.nth pari i in
-        let score = evaluate 10 s2 da dc 13 podatki in
+        let score = evaluate 10 s2 da dc 1 podatki in
         print_string "Accuracy: ";
         print_float score;
         print_newline ()

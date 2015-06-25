@@ -7,7 +7,7 @@ type data =
     | Missing
 
 type schema =
-    | N of float*float
+    | N of float
     | D of string list
     | Tp of schema list
     | St of schema
@@ -40,8 +40,9 @@ and sequence_dist =
 let max_agg = List.fold_left max 0.
 
 let euc_agg sez =
+	let n = float (List.length sez) in
     let square x = x ** 2. in
-    sqrt (List.fold_left (+.) 0. (List.map square sez))
+    (sqrt (List.fold_left (+.) 0. (List.map square sez)))/.n
 
 let avg_agg sez =
     let n = float (List.length sez) in
