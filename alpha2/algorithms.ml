@@ -57,9 +57,9 @@ let randomize stratify data =
 let generate_sets data folds fold =
 	let filter i x = 
 		i := !i + 1;
-		!i mod folds = fold
+		!i mod folds = (fold -1)
 	in
-	List.partition (filter (ref 0)) data
+	List.partition (filter (ref (-1))) data
 	
 (*let update_schema s tset =
 	let rec bounds d1 d2 = match d1,d2 with
@@ -79,7 +79,7 @@ let evaluate folds cshema da dc k podatki = match cshema with
         let coef = ref (float_of_int folds) in
         let randomized = randomize false podatki in
         (for j = 1 to folds do
-            let (train,test) = generate_sets randomized folds j in
+            let (test,train) = generate_sets randomized folds j in
             let knn x = kneighs da dc k mean train (fst x) in
             let rezultati = List.map (fun x -> unpack (knn x)) test in
             let resitve = List.map (fun x -> unpack (snd x)) test in
@@ -95,7 +95,7 @@ let evaluate folds cshema da dc k podatki = match cshema with
         let accuracy = ref 0. in
         let randomized = randomize true podatki in
         (for j = 1 to folds do
-            let (train,test) = generate_sets randomized folds j in
+            let (test,train) = generate_sets randomized folds j in
             let knn x = kneighs da dc k medoid train (fst x) in
             let rezultati = List.map knn test in
             let resitve = List.map snd test in
